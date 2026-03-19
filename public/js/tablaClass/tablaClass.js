@@ -376,47 +376,27 @@ export default function arrancar(objeto, ruta, destino, orden, tipoOrden, pagina
 
     let ordenador = document.getElementById(objeto.destino);
     ordenador.addEventListener("click", function (e) {
-        // Buscar el botón de ordenamiento (icono) en el elemento clickeado o sus ancestros
         const btn = e.target.closest('.sort-toggle');
-        let campo, estadoActual;
-
         if (btn) {
-            // Caso 1: clic en el icono
-            campo = btn.getAttribute('data-campo');
-            estadoActual = btn.getAttribute('data-state') || 'DEFAULT';
-        } else {
-            // Caso 2: clic en otra parte del encabezado (texto)
-            const th = e.target.closest('.titulos');
-            if (th) {
-                campo = th.getAttribute('data-campo');
-                // Buscar el botón dentro del mismo th
-                const btnInside = th.querySelector('.sort-toggle');
-                if (btnInside) {
-                    estadoActual = btnInside.getAttribute('data-state') || 'DEFAULT';
-                } else {
-                    // Si por algún motivo no hay botón, asumir DEFAULT
-                    estadoActual = 'DEFAULT';
-                }
-            } else {
-                // No es un clic en área de ordenamiento, salir
-                return;
-            }
+            e.preventDefault();
+            const campo = btn.getAttribute('data-campo');
+            let estado = btn.getAttribute('data-state') || 'DEFAULT';
+            let siguiente = 'ASC';
+            if (estado === 'DEFAULT') siguiente = 'ASC';
+            else if (estado === 'ASC') siguiente = 'DESC';
+            else if (estado === 'DESC') siguiente = 'DEFAULT';
+            objeto.setSortCriterion(campo, siguiente);
+            return;
         }
 
-        e.preventDefault();
-
-        // Determinar el siguiente estado en el ciclo DEFAULT → ASC → DESC → DEFAULT
-        let siguiente;
-        if (estadoActual === 'DEFAULT') siguiente = 'ASC';
-        else if (estadoActual === 'ASC') siguiente = 'DESC';
-        else if (estadoActual === 'DESC') siguiente = 'DEFAULT';
-        else siguiente = 'ASC'; // fallback
-
-        // Aplicar el nuevo criterio de orden
-        objeto.setSortCriterion(campo, siguiente);
+        let thElement = e.target.closest(".titulos");
+        if (thElement) {
+            let campoMostrado = thElement.getAttribute('data-campo');
+            objeto.contador += 1;
+            let nuevaDir = ((objeto.contador % 2) == 0) ? "ASC" : "DESC";
+            objeto.setSortCriterion(campoMostrado, nuevaDir);
+        }
     });
-
-    
 };
 
 
