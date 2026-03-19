@@ -102,9 +102,6 @@ class Modalidades extends Controlador {
                     if ($key == 'Email') {
                         $cond .= "correo" . $y;
                     }
-                    if ($key == 'Modalidad') {
-                        $cond .= "modalidad" . $y;
-                    }
                     if ($key == 'Teléfono') {
                         $cond .= "telefono" . $y;
                     }
@@ -153,9 +150,6 @@ class Modalidades extends Controlador {
                     }
                     if ($key == 'Email') {
                         $cond .= "correo" . $y;
-                    }
-                    if ($key == 'Modalidad') {
-                        $cond .= "modalidad" . $y;
                     }
                     if ($key == 'Teléfono') {
                         $cond .= "telefono" . $y;
