@@ -60,33 +60,6 @@ class ModeloIncidencias{
         return $resultado;
     }
 
-    // Versión SIN ORDER BY para obtener una página sin ordenar en SQL
-    public function obtenerIncidenciasTablaClassBuscarSinOrden($filas, $filaspagina, $cond){
-        $this->db->query("SELECT inc.id as 'Nº', DATE_FORMAT(inc.creacion , '%d/%m/%Y', 'es_ES') AS 'Creación', 
-                        CONCAT(usu.nombre, ' ', usu.apellidos)  AS 'Usuario',
-                        cli.nombre AS 'Cliente', suc.nombre AS 'Sucursal',
-                        equ.nombre as 'Equipo', 
-                        IF(inc.estado=1,'pendiente',
-                            IF(inc.estado=2,'en curso',
-                                IF(inc.estado=3 AND inc.validarcliente =0,'terminadasinvalorar','terminada')                                          
-                            )
-                        ) AS 'Estado',
-                        inc.nombrestecnicos as 'Técnicos',
-                        IF(moda.valor>0,'horas','') AS 'verhorascliente'
-                        FROM incidencias inc
-                        LEFT JOIN usuarios usu ON inc.idusuario=usu.id
-                        LEFT JOIN clientes cli ON inc.idcliente=cli.id
-                        LEFT JOIN sucursales suc ON inc.sucursal=suc.id
-                        LEFT JOIN equipos equ ON inc.idequipo=equ.id 
-                        LEFT JOIN modalidadhoras moda ON MONTH(inc.creacion) = moda.mes AND YEAR(inc.creacion) = moda.anio AND inc.idcliente=moda.idcliente            
-                        WHERE inc.activo =1  $cond
-                        limit $filaspagina,$filas ");
-
-        $resultado = $this->db->registros();
-
-        return $resultado;
-    }
-
     public function totalRegistrosIncidencias($cond)
     {
         $this->db->query("SELECT count(*) AS contador 
@@ -113,107 +86,6 @@ class ModeloIncidencias{
                         WHERE inc.activo =1  $cond ");
         $fila = $this->db->registro();
         return $fila;
-    }
-
-    
-    /**
- * Construye una cláusula ORDER BY a partir de un JSON con criterios.
- * Soporta tanto títulos de columna (mapeados) como nombres directos de columna SQL.
- */
-    private function buildOrderClauseFromJson($ordenMultipleJson)
-    {
-        if (empty($ordenMultipleJson)) {
-            return '';
-        }
-
-        $arr = json_decode($ordenMultipleJson, true);
-        if (!is_array($arr) || count($arr) == 0) {
-            return '';
-        }
-
-        $map = [
-            'Nº'            => 'inc.id',
-            'Creación'      => 'inc.creacion',
-            'CREACIÓN'      => 'inc.creacion',
-            'Usuario'       => 'usu.nombre',
-            'USUARIO'       => 'usu.nombre',
-            'Cliente'       => 'cli.nombre',
-            'CLIENTE'       => 'cli.nombre',
-            'Sucursal'      => 'suc.nombre',
-            'SUCURSAL'      => 'suc.nombre',
-            'Equipo'        => 'equ.nombre',
-            'EQUIPO'        => 'equ.nombre',
-            'Estado'        => 'inc.estado',     
-            'ESTADO'        => 'inc.estado',
-            'Técnicos'      => 'inc.nombrestecnicos',
-            'TÉCNICOS'      => 'inc.nombrestecnicos',
-            'Agendado'      => 'inc.fechahora',
-            'Fact/Ppto'     => 'inc.nomestadofactppto',
-            'Fact/PPS'      => 'inc.nomestadofactppto',
-            'Atención'      => 'inc.play'
-        ];
-
-        $parts = [];
-        foreach ($arr as $c) {
-            if (!is_array($c) || !isset($c['campo'])) {
-                continue;
-            }
-
-            $campo = trim($c['campo']);
-            $dir   = isset($c['dir']) ? strtoupper(trim($c['dir'])) : 'ASC';
-            $dir   = ($dir === 'DESC') ? 'DESC' : 'ASC';
-
-            if (isset($map[$campo])) {
-                $col = $map[$campo];
-            }
-            elseif (preg_match('/^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)?$/', $campo)) {
-                $col = $campo;
-            }
-            else {
-                continue;
-            }
-
-            $parts[] = "$col $dir";
-        }
-
-        return implode(', ', $parts);
-    }
-
-    public function obtenerIncidenciasConOrdenMultiple($filas, $ordenMultipleJson, $filaspagina, $tipoOrden, $cond)
-    {
-        $sql = "SELECT 
-                    inc.id as 'Nº',
-                    DATE_FORMAT(inc.creacion , '%d/%m/%Y', 'es_ES') AS 'Creación',
-                    CONCAT(usu.nombre, ' ', usu.apellidos) AS 'Usuario',
-                    cli.nombre AS 'Cliente',
-                    suc.nombre AS 'Sucursal',
-                    equ.nombre AS 'Equipo',
-                    IF(inc.estado = 1, 'pendiente',
-                        IF(inc.estado = 2, 'en curso',
-                            IF(inc.estado = 3 AND inc.validarcliente = 0, 'terminadasinvalorar', 'terminada')
-                        )
-                    ) AS 'Estado',
-                    inc.nombrestecnicos AS 'Técnicos',
-                    IF(moda.valor > 0, 'horas', '') AS 'verhorascliente'
-                FROM incidencias inc
-                LEFT JOIN usuarios usu ON inc.idusuario = usu.id
-                LEFT JOIN clientes cli ON inc.idcliente = cli.id
-                LEFT JOIN sucursales suc ON inc.sucursal = suc.id
-                LEFT JOIN equipos equ ON inc.idequipo = equ.id
-                LEFT JOIN modalidadhoras moda 
-                    ON MONTH(inc.creacion) = moda.mes 
-                    AND YEAR(inc.creacion) = moda.anio 
-                    AND inc.idcliente = moda.idcliente
-                WHERE inc.activo = 1 $cond
-                ORDER BY ". $ordenMultipleJson ."  
-                LIMIT $filaspagina, $filas";
-
-/*echo "mi consulta <br><br>";
-       print_r($sql);*/
-        $this->db->query($sql);
-        return $this->db->registros();
-
-        
     }
     
     public function obtenerTodasSucursalesPorCliente($id)
@@ -387,32 +259,6 @@ class ModeloIncidencias{
         return $resultado;
     }
 
-    // Versión SIN ORDER BY para técnicos
-    public function incidenciasTecnicosTablaClassBuscarSinOrden($filas, $filaspagina, $cond){
-        $this->db->query("SELECT inc.id as 'Nº', DATE_FORMAT(inc.creacion , '%d/%m/%Y', 'es_ES') AS 'Creación', 
-                        CONCAT(usu.nombre, ' ', usu.apellidos)  AS 'Usuario',                        
-                        CONCAT(cli.nombre, ' ', cli.nombrecomercial) AS 'Cliente',
-                        suc.nombre AS 'Sucursal',
-                        equ.nombre AS 'Equipo', 
-                        IF(inc.estado=1,'pendiente',
-                            IF(inc.estado=2,'en curso',
-                                IF(inc.estado=3 AND inc.validarcliente =0,'terminadasinvalorar','terminada')                                          
-                            )
-                        ) AS 'Estado',
-                        inc.nombrestecnicos as 'Técnicos', inc.play AS 'Atención',
-                        IF(inc.fechahora IS NULL, '', DATE_FORMAT(inc.fechahora, '%d-%m-%Y %H:%i')) AS 'Agendado'
-                        FROM incidencias inc
-                        LEFT JOIN usuarios usu ON inc.idusuario=usu.id
-                        LEFT JOIN clientes cli ON inc.idcliente=cli.id
-                        LEFT JOIN sucursales suc ON inc.sucursal=suc.id
-                        LEFT JOIN equipos equ ON inc.idequipo=equ.id                        
-                        WHERE inc.activo =1  $cond
-                        limit $filaspagina,$filas ");
-        $resultado = $this->db->registros();
-
-        return $resultado;
-    }
-
     public function incidenciasAdminTablaClassBuscar($filas,$orden,$filaspagina,$tipoOrden,$cond){
 
         $this->db->query("SELECT inc.id as 'Nº', DATE_FORMAT(inc.creacion , '%d/%m/%Y', 'es_ES') AS 'Creación', 
@@ -436,37 +282,6 @@ class ModeloIncidencias{
                         order by " . $orden . "  limit $filaspagina,$filas ");
                         
                         
-        $resultado = $this->db->registros();
-
-        return $resultado;
-    }
-
-    /**
-     * Obtener registros de una página SIN aplicar ORDER BY en SQL.
-     * Util para ordenar únicamente los registros que ya están paginados (orden local)
-     */
-    public function incidenciasAdminTablaClassBuscarSinOrden($filas, $filaspagina, $cond){
-
-        $this->db->query("SELECT inc.id as 'Nº', DATE_FORMAT(inc.creacion , '%d/%m/%Y', 'es_ES') AS 'Creación', 
-                        CONCAT(usu.nombre, ' ', usu.apellidos)  AS 'Usuario',
-                        CONCAT(cli.nombre, ' ', cli.nombrecomercial) AS 'Cliente', suc.nombre AS 'Sucursal',
-                        equ.nombre AS 'Equipo', 
-                        IF(inc.estado=1,'pendiente',
-                            IF(inc.estado=2,'en curso',
-                                IF(inc.estado=3 AND inc.validarcliente =0,'terminadasinvalorar','terminada')                                          
-                            )
-                        ) AS 'Estado',
-                        inc.nombrestecnicos as 'Técnicos', inc.play AS 'Atención' ,
-                        inc.nomestadofactppto AS 'Fact/Ppto',
-                        IF(inc.fechahora IS NULL, '', DATE_FORMAT(inc.fechahora, '%d-%m-%Y %H:%i')) AS 'Agendado'
-                        FROM incidencias inc
-                        LEFT JOIN usuarios usu ON inc.idusuario=usu.id
-                        LEFT JOIN clientes cli ON inc.idcliente=cli.id
-                        LEFT JOIN sucursales suc ON inc.sucursal=suc.id
-                        LEFT JOIN equipos equ ON inc.idequipo=equ.id                                                
-                        WHERE inc.activo =1  $cond
-                        limit $filaspagina,$filas ");
-
         $resultado = $this->db->registros();
 
         return $resultado;
