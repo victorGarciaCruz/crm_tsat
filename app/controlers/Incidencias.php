@@ -68,6 +68,7 @@ class Incidencias extends Controlador {
             $pagina = $_POST['pagina'];
             $orden = $_POST['orden'];
             $tipoOrden = $_POST['tipoOrden'];                
+            $ordenMultiple = isset($_POST['ordenMultiple']) ? $_POST['ordenMultiple'] : '';
         }
 
         $idUsuario = $_SESSION['idusuario'];
@@ -90,7 +91,14 @@ class Incidencias extends Controlador {
             $datos = json_decode($buscar);            
             $cond .= $this->construirCondicionesBuscar($datos);   
         }
-        $incidencias = $this->ModelIncidencias->obtenerIncidenciasTablaClassBuscar($filas,$orden,$filaspagina,$tipoOrden,$cond);      
+        // Si se recibió ordenMultiple (JSON codificado), delegar al nuevo método que aplica ORDER BY con múltiples criterios
+        if (!empty($ordenMultiple)) {
+            // $ordenMultiple viene URL-encoded desde JS; intentar decodificar si es necesario
+            $ordenMultipleRaw = urldecode($ordenMultiple);
+            $incidencias = $this->ModelIncidencias->obtenerIncidenciasConOrdenMultiple($filas, $ordenMultipleRaw, $filaspagina, $cond);
+        } else {
+            $incidencias = $this->ModelIncidencias->obtenerIncidenciasTablaClassBuscar($filas,$orden,$filaspagina,$tipoOrden,$cond);
+        }
         print(json_encode($incidencias));  
     }    
 
@@ -134,14 +142,61 @@ class Incidencias extends Controlador {
         print_r($cont);
     }  
 
+    private function mapearCampoOrdenTecnicoMultiple($campoVisible) {
+        $mapa = [
+            'Nº'       => 'inc.id',
+            'Creación' => "DATE_FORMAT(inc.creacion, '%Y/%m/%d')",      //'se formatea la fecha 
+            'Usuario'  => "CONCAT(usu.nombre, ' ', usu.apellidos)",
+            'Cliente'  => "CONCAT(cli.nombre, ' ', cli.nombrecomercial)",
+            'Sucursal' => 'suc.nombre',
+            'Equipo'   => 'equ.nombre',
+            'Estado'   => 'inc.estado',                        
+            'Técnicos' => 'inc.nombrestecnicos',
+            'Atención' => 'inc.play',                           
+            'Agendado' => "DATE_FORMAT(inc.fechahora, '%Y/%m/%d')"     //'se formatea la fecha                   
+        ];
+        return $mapa[$campoVisible] ?? $campoVisible;
+    }
+
+    private function construirClausulaOrderByTecnicos($ordenMultipleJson, $ordenSimple, $tipoSimple) {
+        // 1. Si hay orden múltiple (JSON con array de criterios), se usa
+        if (!empty($ordenMultipleJson)) {
+            $ordenes = json_decode($ordenMultipleJson, true);
+            if (is_array($ordenes) && count($ordenes) > 0) {
+                $sentencias = [];
+                foreach ($ordenes as $item) {
+                    $campoVisible = $item['campo'];
+                    $direccion = (strtoupper($item['dir']) === 'DESC') ? 'DESC' : 'ASC';
+                    // Usamos el mapeo especial para orden múltiple
+                    $campoSQL = $this->mapearCampoOrdenTecnicoMultiple($campoVisible);
+                    $sentencias[] = "$campoSQL $direccion";
+                }
+                return implode(", ", $sentencias);
+            }
+        }
+
+        // 2. Si no hay orden múltiple válido, usar el orden simple (el tradicional)
+        if (!empty($ordenSimple)) {
+            return $ordenSimple;
+        }
+
+        return "";
+    }
+
+
+
     public function crearTablaIncidenciasTecnicos()
     {
         if ($_SERVER['REQUEST_METHOD'] == "POST") {
             $buscar = $_POST['busqueda'];
             $filas = $_POST['filas'];
             $pagina = $_POST['pagina'];
-            $orden = $_POST['orden'];
-            $tipoOrden = $_POST['tipoOrden'];                
+            //$orden = $_POST['orden'];
+            //$tipoOrden = $_POST['tipoOrden'];                
+            // Nuevos parámetros para orden múltiple
+            $ordenMultiple = isset($_POST['ordenMultiple']) ? urldecode($_POST['ordenMultiple']) : '';
+            $ordenSimple   = isset($_POST['orden']) ? $_POST['orden'] : '';
+            $tipoSimple    = isset($_POST['tipoOrden']) ? $_POST['tipoOrden'] : '';
         }
 
         $idTecnico = $_SESSION['idusuario'];
@@ -159,7 +214,16 @@ class Incidencias extends Controlador {
             $cond .= $this->construirCondicionesBuscar($datos);           
         }
 
-        $incidencias = $this->ModelIncidencias->incidenciasTecnicosTablaClassBuscar($filas,$orden,$filaspagina,$tipoOrden,$cond);      
+        // Construir la cláusula ORDER BY
+        $clausulaOrder = $this->construirClausulaOrderByTecnicos($ordenMultiple, $ordenSimple, $tipoSimple);
+         // Llamar al modelo pasando la cláusula completa
+        $incidencias = $this->ModelIncidencias->incidenciasTecnicosTablaClassBuscar(
+            $filas,
+            $clausulaOrder,
+            $filaspagina,
+            $tipoSimple,
+            $cond
+        );     
         print(json_encode($incidencias));  
     }    
 
@@ -290,28 +354,71 @@ class Incidencias extends Controlador {
         print_r($cont);
     }  
 
-    public function crearTablaIncidenciasAdmin()
-    {
+    private function mapearCampoOrdenMultiple($campoVisible) {
+        $mapa = [
+            'Nº'          => 'inc.id',
+            'Creación'    => "DATE_FORMAT(inc.creacion, '%Y/%m/%d', 'es_ES')",  
+            'Usuario'     => "CONCAT(usu.nombre, ' ', usu.apellidos)",
+            'Cliente'     => "CONCAT(cli.nombre, ' ', cli.nombrecomercial)",
+            'Sucursal'    => 'suc.nombre',
+            'Equipo'      => 'equ.nombre',
+            'Estado'      => 'inc.estado',
+            'Técnicos'    => 'inc.nombrestecnicos',
+            'Fact/Ppto'   => 'inc.nomestadofactppto',
+            'Agendado'    => "DATE_FORMAT(inc.fechahora, '%Y/%m/%d', 'es_ES')",
+        ];
+        return $mapa[$campoVisible] ?? $campoVisible;
+    }
+
+    public function crearTablaIncidenciasAdmin() {
         if ($_SERVER['REQUEST_METHOD'] == "POST") {
             $buscar = $_POST['busqueda'];
             $filas = $_POST['filas'];
             $pagina = $_POST['pagina'];
-            $orden = $_POST['orden'];
-            $tipoOrden = $_POST['tipoOrden'];                
+            $ordenMultiple = isset($_POST['ordenMultiple']) ? urldecode($_POST['ordenMultiple']) : '';
+            $ordenSimple = isset($_POST['orden']) ? $_POST['orden'] : '';
+            $tipoSimple = isset($_POST['tipoOrden']) ? $_POST['tipoOrden'] : '';
+
+            // Construir la cláusula ORDER BY
+            $clausulaOrder = $this->construirClausulaOrderBy($ordenMultiple, $ordenSimple, $tipoSimple);
+
+            $cond = '';
+            $filaspagina = $filas * $pagina;
+
+            if ($buscar != "") {
+                $datos = json_decode($buscar);
+                $cond .= $this->construirCondicionesBuscar($datos);
+            }
+
+            $incidencias = $this->ModelIncidencias->obtenerIncidenciasConOrdenMultiple($filas, $clausulaOrder, $filaspagina, $tipoSimple, $cond);
+            print(json_encode($incidencias));
+        }
+    } 
+
+    private function construirClausulaOrderBy($ordenMultipleJson, $ordenSimple, $tipoSimple) {
+        // 1. Si hay orden múltiple (JSON con al menos un criterio), se usa
+        if (!empty($ordenMultipleJson)) {
+            $ordenes = json_decode($ordenMultipleJson, true);
+            if (is_array($ordenes) && count($ordenes) > 0) {
+                $sentencias = [];
+                foreach ($ordenes as $item) {
+                    $campoVisible = $item['campo'];
+                    $direccion = (strtoupper($item['dir']) === 'DESC') ? 'DESC' : 'ASC';
+                    // Usamos el mapeo especial para orden múltiple
+                    $campoSQL = $this->mapearCampoOrdenMultiple($campoVisible);
+                    $sentencias[] = "$campoSQL $direccion";
+                }
+                return implode(", ", $sentencias);
+            }
         }
 
-        $cond = '';
-
-        $filaspagina = $filas * $pagina;
-    
-        if ($buscar != "") {            
-            $datos = json_decode($buscar);
-            $cond .= $this->construirCondicionesBuscar($datos);     
+        // 2. Si no hay orden múltiple, usar el orden simple (puede ser múltiple en el string)
+        if (!empty($ordenSimple)) {
+            return $ordenSimple;
         }
 
-        $incidencias = $this->ModelIncidencias->incidenciasAdminTablaClassBuscar($filas,$orden,$filaspagina,$tipoOrden,$cond);      
-        print(json_encode($incidencias));  
-    }    
+        return "";
+    }
 
     public function totalRegistrosIncidenciasAdmin()
     {

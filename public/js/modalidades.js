@@ -1,4 +1,4 @@
-if(window.location.pathname.includes('/Modalidades') || window.location.pathname.includes('/ModalidadesMantto')){  
+if(window.location.pathname.includes('/Modalidades')){   
     
     function toggleModal(modal_id) {
             

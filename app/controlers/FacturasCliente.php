@@ -482,39 +482,86 @@ class FacturasCliente extends Controlador {
         return $cond;
     }    
 
+    private function mapearCampoOrdenFactura($campoVisible) {
+        $mapa = [
+            'Nº'              => 'fac.id',
+            'Numero factura' => "CONCAT(
+                                            LPAD(REGEXP_REPLACE(SUBSTRING_INDEX(fac.numero, '/', -1), '[^0-9]', ''), 4, '0'),
+                                            REGEXP_REPLACE(SUBSTRING_INDEX(fac.numero, '/', -1), '[0-9]', ''),
+                                            LPAD(CAST(SUBSTRING_INDEX(fac.numero, '/', 1) AS UNSIGNED), 4, '0')
+                                        )",    //'fac.numero'
+            'cliente'         => 'fac.cliente',   
+            'cif'             => 'cli.cif',
+            'fecha'           => "DATE_FORMAT(fac.fecha, '%Y/%m/%d', 'es_ES')",     //'fac.fecha',
+            'vencimiento'     => "DATE_FORMAT(fac.vencimiento, '%Y/%m/%d', 'es_ES')",   //'fac.vencimiento',
+            'estado'          => 'fac.estado'
+        ];
+        return $mapa[$campoVisible] ?? $campoVisible;
+    }
+
+    private function construirClausulaOrderByFacturas($ordenMultipleJson, $ordenSimple, $tipoSimple) {
+        // 1. Si hay orden múltiple (JSON con array de criterios), se usa
+        if (!empty($ordenMultipleJson)) {
+            $ordenes = json_decode($ordenMultipleJson, true);
+            if (is_array($ordenes) && count($ordenes) > 0) {
+                $sentencias = [];
+                foreach ($ordenes as $item) {
+                    $campoVisible = $item['campo'];
+                    $direccion = (strtoupper($item['dir']) === 'DESC') ? 'DESC' : 'ASC';
+                    $campoSQL = $this->mapearCampoOrdenFactura($campoVisible);
+                    $sentencias[] = "$campoSQL $direccion";
+                }
+                return implode(", ", $sentencias);
+            }
+        }
+
+        // 2. Si no hay orden múltiple válido, usar el orden simple (el que viene de la visual)
+        if (!empty($ordenSimple)) {
+            return $ordenSimple;
+        }
+
+        // 3. Si todo está vacío, retornamos cadena vacía 
+        return "";
+    }
+
     public function crearTablaFacturasAdmin()
     {
         if ($_SERVER['REQUEST_METHOD'] == "POST") {
             $buscar = $_POST['busqueda'];
             $filas = $_POST['filas'];
             $pagina = $_POST['pagina'];
-            $orden = $_POST['orden'];
-            $tipoOrden = $_POST['tipoOrden'];                
+            $ordenMultiple = isset($_POST['ordenMultiple']) ? urldecode($_POST['ordenMultiple']) : '';
+            $ordenSimple   = isset($_POST['orden']) ? $_POST['orden'] : '';
+            $tipoSimple    = isset($_POST['tipoOrden']) ? $_POST['tipoOrden'] : '';
         }
 
-        
-        $cond = '1';
-
+        $cond = '1';  // base de la condición
         $filaspagina = $filas * $pagina;
-    
-        /*
-        echo"<br>buscar<br>";
-        print_r($buscar);
-        */
 
-        if ($buscar != "") {            
-            $datos = json_decode($buscar);
-            $cond .= $this->construirCondicionesBuscar($datos);     
+        // Determinar parámetros de orden según si hay orden múltiple
+        if (!empty($ordenMultiple)) {
+            // Caso orden múltiple: construir cláusula completa y tipo vacío
+            $clausulaOrder = $this->construirClausulaOrderByFacturas($ordenMultiple, $ordenSimple, $tipoSimple);
+            if (empty($clausulaOrder)) {
+                $clausulaOrder = "fac.fecha DESC, fac.numerointerno DESC"; // orden por defecto (mismo que en la vista)
+            }
+            $ordenFinal = $clausulaOrder;
+            $tipoFinal = '';
+        } else {
+            // Caso orden simple: usar los valores originales
+            $ordenFinal = $ordenSimple;
+            $tipoFinal = $tipoSimple;
         }
-     
-        /*
-        echo"<br>cond<br>";
-        print_r($cond);
-        die;
-        */
 
-        $registros = $this->ModelFacturasCliente->registrosAdminTablaClassBuscar($filas,$orden,$filaspagina,$tipoOrden,$cond);      
-        print(json_encode($registros));  
+        // Lógica de búsqueda (sin cambios)
+        if ($buscar != "") {
+            $datos = json_decode($buscar);
+            $cond .= $this->construirCondicionesBuscar($datos);
+        }
+
+        // Llamada al modelo (misma firma, pero con los parámetros adecuados)
+        $registros = $this->ModelFacturasCliente->registrosAdminTablaClassBuscar($filas,$ordenFinal,$filaspagina,$tipoFinal,$cond);
+        print(json_encode($registros));
     }    
 
     public function totalRegistrosFacturasAdmin()

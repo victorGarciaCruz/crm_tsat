@@ -148,15 +148,19 @@
 
                                     </div>
 
-                                    <select id="equiposTecnico" name="equiposTecnico" class="todos py-2 px-3 rounded-lg border-2 border-coolGray-300 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent">                                        
-                                        <?php                                                                                        
+                                    <select id="equiposTecnico" name="equiposTecnico" class="todos py-2 px-3 rounded-lg border-2 border-coolGray-300 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent">
+                                        
+                                        <?php                                            
+                                            //echo'<option value="" disabled selected>Seleccionar</option>';
                                             if(!empty($datos['equipos'])){                                                
                                                 foreach ($datos['equipos'] as $eq) {
                                                     $idEquipoSelected = ($eq->id==$detalles->idequipo)? 'selected': '';
                                                     echo'<option value="'.$eq->id.'" '.$idEquipoSelected.'>'.$eq->nombre.'</option>';
                                                 }
                                             }
-                                        ?>                                        
+                                        ?>
+
+                                        <!-- <option value="<?php //echo $detalles->idequipo;?>" selected><?php //echo $detalles->nombreequipo;?></option> -->
                                     </select>
                                 </div> 
                             

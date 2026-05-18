@@ -14,8 +14,7 @@
             <h2 class="text-2xl font-semibold leading-tight flex-1 mr-2">Listado de facturas - Clientes</h2>
 
             <div class="inline-flex my-2">                                            
-                <a href="<?php echo RUTA_URL;  ?>/FacturasCliente/crearFactura" id="nuevaFactura" class='w-auto bg-violeta-oscuro hover:bg-blue-700 rounded-lg shadow-xl font-medium text-white px-4 py-2 mr-2'><i class="fas fa-plus mr-2 text-base"></i> Nueva factura</a>
-                <a href="<?php echo RUTA_URL;  ?>/FacturasCliente/crearFactura" id="exportExcel" class='w-auto bg-green-500 hover:bg-blue-700 rounded-lg shadow-xl font-medium text-white px-4 py-2'><i class="fas fa-file-excel mr-2 text-base"></i> Exportar</a>
+                <a href="<?php echo RUTA_URL;  ?>/FacturasCliente/crearFactura" id="nuevaFactura" class='w-auto bg-violeta-oscuro hover:bg-blue-700 rounded-lg shadow-xl font-medium text-white px-4 py-2'><i class="fas fa-plus mr-2 text-base"></i> Nueva factura</a>
             </div> 
 
             <!-- ****** ALERTAS DE ERROR ****** -->

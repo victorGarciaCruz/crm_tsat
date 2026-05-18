@@ -22,8 +22,8 @@
                     <?php for($i=0;$i<count($menu[3]);$i++){ 
                       if($menu[3][$i][1] != "link"){ 
                       
-                        $visible = ($menu[3][$i][0] == '/ModalidadesMantto' && EMPRESA === 'INFOMALAGA')? 'display:none':'';                                               
-                    ?>
+                        $visible = ($menu[3][$i][0] == '/ModalidadesMantto' && EMPRESA === 'INFOMALAGA')? 'display:none':'';                                           
+                        ?>
                       <a style="<?php echo $visible;?>" href="<?php echo RUTA_URL . $menu[3][$i][0]; ?>" class="px-3 py-1 hover:<?php print BG_SUBMENU_HOVER; ?>"><?php print($menu[3][$i][1]); ?></a>
                     <?php 
                     } 

@@ -73,7 +73,7 @@
                     <script  type="module">
 
                     import arrancar from "<?php print RUTA_URL;  ?>/public/js/tablaClass/tablaClass.js" 
-                    arrancar("tablaincidencias","Incidencias/crearTablaIncidenciasAdmin", "destinoincidenciastodasajax", "inc.estado ASC, inc.fechahora DESC", "DESC", 1, "buscador","Incidencias/totalRegistrosIncidenciasAdmin", [10, 20, 30],"min-w-full leading-normal","paginador",["estadoatencion","ver","terminar","historial","reasignar","reabrir","eliminar"],"<?php echo RUTA_URL.'/Incidencias/editarIncidencia';?>","");
+                    arrancar("tablaincidencias","Incidencias/crearTablaIncidenciasAdmin", "destinoincidenciastodasajax", "inc.estado ASC, inc.creacion DESC", "DESC", 0, "buscador","Incidencias/totalRegistrosIncidenciasAdmin", [10, 20, 30],"min-w-full leading-normal","paginador",["estadoatencion","ver","terminar","historial","reasignar","reabrir","eliminar"],"<?php echo RUTA_URL.'/Incidencias/editarIncidencia';?>","");
 
                     </script>
             </div>

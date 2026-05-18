@@ -3,13 +3,7 @@
 // configuracion acceso a base de datos producción
 
 
-//define('DB_HOST','localhost');
-/*
-define('DB_HOST','154.56.134.217');
-define('DB_USUARIO','crm_telesat');
-define('DB_PASSWORD','J2t3c7%o');
-define('DB_NOMBRE','crm_telesat');
-*/
+
 
 
 define('DB_HOST','localhost:3307');
@@ -22,7 +16,7 @@ define('DB_NOMBRE','crm_telesat');
 define('RUTA_APP', dirname(dirname(__FILE__)));
 
 define('RUTA_URL','http://localhost:8080/crm_tsat');
-//define('RUTA_URL','https://crm.infomalaga.es');
+
 // NOMBRE DEL SITIO
 define('NOMBRE_SITIO', 'TELESAT');
 // RUTA CONTROL PERMISOS

@@ -36,37 +36,82 @@ class Productos extends Controlador
         print(json_encode($users));        
     }
 
+    private function mapearCampoOrdenProducto($campoVisible) {
+        $mapa = [
+            'Nº'     => 'pro.numero',
+            'Nombre' => 'pro.nombre',
+            'Stock'  => 'pro.stock',
+            'Marca'  => 'pro.marca',
+            'Iva'    => 'pro.iva',
+            'P.Vta'  => 'pro.pvtadefault'
+        ];
+        return $mapa[$campoVisible] ?? $campoVisible;
+    }
+
+    private function construirClausulaOrderByProductos($ordenMultipleJson, $ordenSimple, $tipoSimple) {
+        // 1. Si hay orden múltiple (JSON con array de criterios), se usa
+        if (!empty($ordenMultipleJson)) {
+            $ordenes = json_decode($ordenMultipleJson, true);
+            if (is_array($ordenes) && count($ordenes) > 0) {
+                $sentencias = [];
+                foreach ($ordenes as $item) {
+                    $campoVisible = $item['campo'];
+                    $direccion = (strtoupper($item['dir']) === 'DESC') ? 'DESC' : 'ASC';
+                    $campoSQL = $this->mapearCampoOrdenProducto($campoVisible);
+                    $sentencias[] = "$campoSQL $direccion";
+                }
+                return implode(", ", $sentencias);
+            }
+        }
+
+        // 2. Si no hay orden múltiple válido, usar el orden simple (el tradicional)
+        if (!empty($ordenSimple)) {
+            return $ordenSimple;
+        }
+
+        // 3. Si todo está vacío, retornamos cadena vacía (luego se aplicará un orden por defecto)
+        return "";
+    }
+
     public function crearTablaProductos()
     {
         if ($_SERVER['REQUEST_METHOD'] == "POST") {
             $buscar = $_POST['busqueda'];
             $filas = $_POST['filas'];
             $pagina = $_POST['pagina'];
-            $orden = $_POST['orden'];
-            $tipoOrden = $_POST['tipoOrden'];
+            $ordenMultiple = isset($_POST['ordenMultiple']) ? urldecode($_POST['ordenMultiple']) : '';
+            $ordenSimple   = isset($_POST['orden']) ? $_POST['orden'] : '';
+            $tipoSimple    = isset($_POST['tipoOrden']) ? $_POST['tipoOrden'] : '';
         }
-        
+
         $cond = '1';
         $filaspagina = $filas * $pagina;
-    
-        if ($buscar != "") {               
-            
+
+        // Determinar parámetros de orden según si hay orden múltiple
+        if (!empty($ordenMultiple)) {
+            // Caso orden múltiple: construir cláusula completa y tipo vacío
+            $clausulaOrder = $this->construirClausulaOrderByProductos($ordenMultiple, $ordenSimple, $tipoSimple);
+            if (empty($clausulaOrder)) {
+                $clausulaOrder = "pro.numero ASC"; 
+            }
+            $ordenFinal = $clausulaOrder;
+            $tipoFinal = '';
+        } else {
+            // Caso orden simple: usar los valores originales
+            $ordenFinal = $ordenSimple;
+            $tipoFinal = $tipoSimple;
+        }
+
+        // Lógica de búsqueda (sin cambios)
+        if ($buscar != "") {
             $datos = json_decode($buscar);
-            
             $tamanio = count((array) $datos);
             if ($tamanio > 0) {
-                                
                 $cont = 0;
                 $cond .= " AND  (";
                 foreach ($datos as $key => $value) {
-    
-                    $cont++;                   
-                    
-                    if ($cont < ($tamanio) ) {                    
-                        $y =  " LIKE " . "'%$value%'" . " AND ";
-                    } else {                    
-                        $y =  " LIKE " . "'%$value%'" . ") ";
-                    }                   
+                    $cont++;
+                    $y = ($cont < $tamanio) ? " LIKE '%$value%' AND " : " LIKE '%$value%' ) ";
                     if ($key == 'Nº') {
                         $cond .= "pro.numero" . $y;
                     }
@@ -81,17 +126,23 @@ class Productos extends Controlador
                     }
                     if ($key == 'Iva') {
                         $cond .= "pro.iva" . $y;
-                    }                                      
+                    }
                     if ($key == 'P.Vta') {
                         $cond .= "pro.pvtadefault" . $y;
-                    } 
-                }                                    
-    
-            }            
+                    }
+                }
+            }
         }
 
-        $usuarios = $this->ModelProductos->obtenerProductosTablaClassBuscar($filas,$orden,$filaspagina,$tipoOrden,$cond);
-        print(json_encode($usuarios));  
+        $productos = $this->ModelProductos->obtenerProductosTablaClassBuscar(
+            $filas,
+            $ordenFinal,
+            $filaspagina,
+            $tipoFinal,
+            $cond
+        );
+
+        print(json_encode($productos));
     }    
 
     public function totalRegistrosProductos()
