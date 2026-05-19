@@ -152,8 +152,9 @@ class Incidencias extends Controlador {
             'Equipo'   => 'equ.nombre',
             'Estado'   => 'inc.estado',                        
             'Técnicos' => 'inc.nombrestecnicos',
-            'Atención' => 'inc.play',                           
-            'Agendado' => "DATE_FORMAT(inc.fechahora, '%Y/%m/%d')"     //'se formatea la fecha                   
+            'Atención' => 'inc.play',
+            'Agendado' => 'inc.fechahora'                          
+            //'Agendado' => "DATE_FORMAT(inc.fechahora, '%Y/%m/%d')"     //'se formatea la fecha                   
         ];
         return $mapa[$campoVisible] ?? $campoVisible;
     }
@@ -365,7 +366,8 @@ class Incidencias extends Controlador {
             'Estado'      => 'inc.estado',
             'Técnicos'    => 'inc.nombrestecnicos',
             'Fact/Ppto'   => 'inc.nomestadofactppto',
-            'Agendado'    => "DATE_FORMAT(inc.fechahora, '%Y/%m/%d', 'es_ES')",
+            'Agendado' => 'inc.fechahora'
+            //'Agendado'    => "DATE_FORMAT(inc.fechahora, '%Y/%m/%d', 'es_ES')",
         ];
         return $mapa[$campoVisible] ?? $campoVisible;
     }
